@@ -350,9 +350,9 @@ with tab_overview:
         # Nettoyer et convertir les données
         df_insta_clean = df_insta.copy()
         
-        # Debug: afficher quelques valeurs pour diagnostiquer
-        st.write(f"Échantillon de données pour {selected_metric}:")
-        st.write(df_insta_clean[selected_metric].head())
+        # Debug: afficher quelques valeurs pour diagnostiquer (commenté pour interface propre)
+        # st.write(f"Échantillon de données pour {selected_metric}:")
+        # st.write(df_insta_clean[selected_metric].head())
         
         df_insta_clean[selected_metric] = pd.to_numeric(
             df_insta_clean[selected_metric].astype(str).str.replace(',', '.').str.replace(' ', ''),
@@ -426,21 +426,19 @@ with tab_overview:
                 showgrid=True,
                 gridcolor='rgba(128, 128, 128, 0.2)'
             ),
-            yaxis=dict(
-                title="Nombre d'inscriptions",
-                titlefont=dict(color='#FF4B4B'),
-                tickfont=dict(color='#FF4B4B'),
-                showgrid=True,
-                gridcolor='rgba(255, 75, 75, 0.1)'
-            ),
-            yaxis2=dict(
-                title=selected_metric,
-                titlefont=dict(color='#636EFA'),
-                tickfont=dict(color='#636EFA'),
-                overlaying='y',
-                side='right',
-                showgrid=False
-            ),
+        yaxis=dict(
+            title=dict(text="Nombre d'inscriptions", font=dict(color='#FF4B4B')),
+            tickfont=dict(color='#FF4B4B'),
+            showgrid=True,
+            gridcolor='rgba(255, 75, 75, 0.1)'
+        ),
+        yaxis2=dict(
+            title=dict(text=selected_metric, font=dict(color='#636EFA')),
+            tickfont=dict(color='#636EFA'),
+            overlaying='y',
+            side='right',
+            showgrid=False
+        ),
             showlegend=True,
             legend=dict(
                 orientation="h",
