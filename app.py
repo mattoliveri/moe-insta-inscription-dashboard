@@ -318,9 +318,14 @@ with tab_overview:
             'Clics sur le lien': 'Clics liens',
             'Enregistrements': 'Enregistrements'
         }
+        available_metrics = [m for m in insta_metrics.keys() if m in df_insta.columns]
+        if not available_metrics:
+            st.error("Aucune métrique Instagram disponible dans les données")
+            st.stop()
+        
         selected_metric = st.selectbox(
             "Métrique Instagram",
-            options=[m for m in insta_metrics.keys() if m in df_insta.columns]
+            options=available_metrics
         )
     
     with col2:
@@ -335,8 +340,17 @@ with tab_overview:
     daily_reg = df_reg.groupby('date').size().reset_index(name='inscriptions')
     
     # Conversion des valeurs Instagram en nombres (gestion des virgules)
-    df_insta[selected_metric] = df_insta[selected_metric].astype(str).str.replace(',', '.').astype(float)
-    daily_insta = df_insta.groupby('date')[selected_metric].sum().reset_index()
+    try:
+        # Nettoyer et convertir les données
+        df_insta_clean = df_insta.copy()
+        df_insta_clean[selected_metric] = pd.to_numeric(
+            df_insta_clean[selected_metric].astype(str).str.replace(',', '.').str.replace(' ', ''),
+            errors='coerce'
+        ).fillna(0)
+        daily_insta = df_insta_clean.groupby('date')[selected_metric].sum().reset_index()
+    except Exception as e:
+        st.error(f"Erreur lors du traitement des données Instagram : {str(e)}")
+        st.stop()
     
     # Tri par date
     daily_reg = daily_reg.sort_values('date')
@@ -348,33 +362,42 @@ with tab_overview:
         daily_insta[selected_metric] = daily_insta[selected_metric].rolling(window=7, min_periods=1).mean()
     
     # Création du graphique
-    fig = go.Figure()
-    
-    # Courbe des inscriptions
-    fig.add_trace(
-        go.Scatter(
-            x=daily_reg['date'],
-            y=daily_reg['inscriptions'],
-            name="Inscriptions",
-            line=dict(color='#FF4B4B', width=3),
-            mode='lines',
-            yaxis='y',
-            hovertemplate="<b>%{x|%d/%m/%Y}</b><br>Inscriptions: %{y:.0f}<extra></extra>"
+    try:
+        fig = go.Figure()
+        
+        # Vérifier que les données ne sont pas vides
+        if daily_reg.empty or daily_insta.empty:
+            st.warning("Pas de données disponibles pour créer le graphique")
+            st.stop()
+        
+        # Courbe des inscriptions
+        fig.add_trace(
+            go.Scatter(
+                x=daily_reg['date'],
+                y=daily_reg['inscriptions'],
+                name="Inscriptions",
+                line=dict(color='#FF4B4B', width=3),
+                mode='lines',
+                yaxis='y',
+                hovertemplate="<b>%{x|%d/%m/%Y}</b><br>Inscriptions: %{y:.0f}<extra></extra>"
+            )
         )
-    )
-    
-    # Courbe de la métrique Instagram
-    fig.add_trace(
-        go.Scatter(
-            x=daily_insta['date'],
-            y=daily_insta[selected_metric],
-            name=selected_metric,
-            line=dict(color='#636EFA', width=3),
-            mode='lines',
-            yaxis='y2',
-            hovertemplate=f"<b>%{{x|%d/%m/%Y}}</b><br>{selected_metric}: %{{y:.0f}}<extra></extra>"
+        
+        # Courbe de la métrique Instagram
+        fig.add_trace(
+            go.Scatter(
+                x=daily_insta['date'],
+                y=daily_insta[selected_metric],
+                name=selected_metric,
+                line=dict(color='#636EFA', width=3),
+                mode='lines',
+                yaxis='y2',
+                hovertemplate=f"<b>%{{x|%d/%m/%Y}}</b><br>{selected_metric}: %{{y:.0f}}<extra></extra>"
+            )
         )
-    )
+    except Exception as e:
+        st.error(f"Erreur lors de la création du graphique : {str(e)}")
+        st.stop()
     
     # Mise en page
     fig.update_layout(
