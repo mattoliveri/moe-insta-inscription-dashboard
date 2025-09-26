@@ -341,15 +341,34 @@ with tab_overview:
     
     # Conversion des valeurs Instagram en nombres (gestion des virgules)
     try:
+        # Vérifier que les colonnes existent
+        if selected_metric not in df_insta.columns:
+            st.error(f"La colonne '{selected_metric}' n'existe pas dans les données Instagram")
+            st.write("Colonnes disponibles:", list(df_insta.columns))
+            st.stop()
+        
         # Nettoyer et convertir les données
         df_insta_clean = df_insta.copy()
+        
+        # Debug: afficher quelques valeurs pour diagnostiquer
+        st.write(f"Échantillon de données pour {selected_metric}:")
+        st.write(df_insta_clean[selected_metric].head())
+        
         df_insta_clean[selected_metric] = pd.to_numeric(
             df_insta_clean[selected_metric].astype(str).str.replace(',', '.').str.replace(' ', ''),
             errors='coerce'
         ).fillna(0)
+        
         daily_insta = df_insta_clean.groupby('date')[selected_metric].sum().reset_index()
+        
+        # Vérifier que nous avons des données après traitement
+        if daily_insta.empty or daily_insta[selected_metric].sum() == 0:
+            st.warning(f"Aucune donnée valide trouvée pour {selected_metric}")
+            st.stop()
+            
     except Exception as e:
         st.error(f"Erreur lors du traitement des données Instagram : {str(e)}")
+        st.write("Colonnes dans df_insta:", list(df_insta.columns))
         st.stop()
     
     # Tri par date
@@ -395,58 +414,60 @@ with tab_overview:
                 hovertemplate=f"<b>%{{x|%d/%m/%Y}}</b><br>{selected_metric}: %{{y:.0f}}<extra></extra>"
             )
         )
+        # Mise en page
+        fig.update_layout(
+            title=dict(
+                text=f"Évolution des inscriptions et {selected_metric.lower()} ({agg_type.lower()})",
+                font=dict(size=20)
+            ),
+            xaxis=dict(
+                title="Date",
+                tickformat='%d/%m/%Y',
+                showgrid=True,
+                gridcolor='rgba(128, 128, 128, 0.2)'
+            ),
+            yaxis=dict(
+                title="Nombre d'inscriptions",
+                titlefont=dict(color='#FF4B4B'),
+                tickfont=dict(color='#FF4B4B'),
+                showgrid=True,
+                gridcolor='rgba(255, 75, 75, 0.1)'
+            ),
+            yaxis2=dict(
+                title=selected_metric,
+                titlefont=dict(color='#636EFA'),
+                tickfont=dict(color='#636EFA'),
+                overlaying='y',
+                side='right',
+                showgrid=False
+            ),
+            showlegend=True,
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1
+            ),
+            template="plotly_white",
+            height=500,
+            hovermode='x unified',
+            # Ajout des boutons de téléchargement
+            modebar=dict(
+                bgcolor='rgba(0,0,0,0)',
+                color='#636EFA',
+                activecolor='#FF4B4B',
+                add=['downloadImage']
+            )
+        )
+        
+        # Affichage du graphique
+        st.plotly_chart(fig, use_container_width=True)
+        
     except Exception as e:
         st.error(f"Erreur lors de la création du graphique : {str(e)}")
+        st.warning("Problème avec les données. Vérifiez le format des colonnes dans les fichiers CSV.")
         st.stop()
-    
-    # Mise en page
-    fig.update_layout(
-        title=dict(
-            text=f"Évolution des inscriptions et {selected_metric.lower()} ({agg_type.lower()})",
-            font=dict(size=20)
-        ),
-        xaxis=dict(
-            title="Date",
-            tickformat='%d/%m/%Y',
-            showgrid=True,
-            gridcolor='rgba(128, 128, 128, 0.2)'
-        ),
-        yaxis=dict(
-            title="Nombre d'inscriptions",
-            titlefont=dict(color='#FF4B4B'),
-            tickfont=dict(color='#FF4B4B'),
-            showgrid=True,
-            gridcolor='rgba(255, 75, 75, 0.1)'
-        ),
-        yaxis2=dict(
-            title=selected_metric,
-            titlefont=dict(color='#636EFA'),
-            tickfont=dict(color='#636EFA'),
-            overlaying='y',
-            side='right',
-            showgrid=False
-        ),
-        showlegend=True,
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            xanchor="right",
-            x=1
-        ),
-        template="plotly_white",
-        height=500,
-        hovermode='x unified',
-        # Ajout des boutons de téléchargement
-        modebar=dict(
-            bgcolor='rgba(0,0,0,0)',
-            color='#636EFA',
-            activecolor='#FF4B4B',
-            add=['downloadImage']
-        )
-    )
-    
-    st.plotly_chart(fig, use_container_width=True)
 
 
 # Onglet Inscriptions
